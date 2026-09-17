@@ -3,6 +3,8 @@ library(tidyr)
 library(dplyr)
 library(readr)
 library(lubridate)
+library(plotly)
+library(htmlwidgets)
 
 
 azul_profundo <- "#003785"
@@ -133,7 +135,7 @@ ggplot(df_perfil, aes(x = hora_frac, y = air, color = dia_sem)) +
   scale_y_continuous(breaks = seq(84, 97.5, 2)) +
   scale_color_manual(values = paleta_semana) +   
   labs(
-    title = "Monitoreo de Calidad de Aire (AQI)",
+    title = "Monitoreo de Calidad de Aire",
     subtitle = "Tendencia horaria semanal - Red: sala7",
     x = "Hora del día", 
     y = "Índice de Calidad (0-100)", 
@@ -212,7 +214,7 @@ df_m_s_w <- df_m_w %>%
     .groups = "drop"
   )
 
-ggplot() +
+p <- ggplot() +
   # Se incorpora la estética 'color' dentro de aes() para que genere la leyenda automaticamente
   geom_line(data = df_m_n_s, aes(x = timestamp_s, y = temp_promedio, color = "Interna"), linewidth = 1) +
   geom_line(data = df_m_s_w, aes(x = timestamp_s_w, y = temp_promedio, color = "Externa"), linewidth = 1) +
@@ -228,6 +230,15 @@ ggplot() +
     color = "Ubicación del Sensor"
   ) +
   tema_presentacion
+
+p_html <- ggplotly(p)
+
+saveWidget(
+  widget = p_html, 
+  file = "grafico_temp_int_vs_ext_monitoreo.html", 
+  selfcontained = TRUE
+)
+
 
 
 

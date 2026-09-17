@@ -5,6 +5,8 @@ library(readr)
 library(lubridate)
 library(scales)
 library(patchwork)
+library(plotly)
+library(htmlwidgets)
 
 
 azul_profundo <- "#003785"
@@ -112,6 +114,12 @@ p_used <- ggplot(df_ram_used, aes(x = timestamp_s, y = ram_promedio)) +
     )
   )
 
+p1 <- ggplotly(p_total)
+p2 <- ggplotly(p_used)
+
+grafico_ram_combinado <- subplot(p1, p2, nrows = 2, shareX = TRUE)
+
+saveWidget(grafico_ram_combinado, file = "grafico_edge_ram.html", selfcontained = TRUE)
 
 
 #///////////////////////
@@ -131,7 +139,7 @@ df_mo <- df_mo %>% filter(year(timestamp) == 2026)
 sender <- df_mo %>% 
   select(timestamp, sender_user_id)
 
-ggplot(sender, aes(x = sender_user_id)) +
+p <- ggplot(sender, aes(x = sender_user_id)) +
   geom_bar(fill = celeste, color = azul_profundo, width = 0.6) +
   coord_cartesian(ylim = c(0, 140000)) +         
   scale_y_continuous(
@@ -147,6 +155,13 @@ ggplot(sender, aes(x = sender_user_id)) +
   tema_presentacion +
   theme(axis.text.x = element_text(angle = 45, hjust = 1, face = "bold"))
 
+p_html <- ggplotly(p)
+
+saveWidget(
+  widget = p_html, 
+  file = "grafico_distribucion_monitoreo.html", 
+  selfcontained = TRUE
+)
 
 
 #------------------------
@@ -168,7 +183,7 @@ fecha_update <- as.POSIXct("2026-07-30 18:00:00")
 fecha_corte_luz <- as.POSIXct("2026-08-9 00:00:00")
 fecha_vuelta_luz <- as.POSIXct("2026-08-10 00:00:00")
 
-ggplot(device, aes(x = timestamp, y = active_hours)) +
+p <- ggplot(device, aes(x = timestamp, y = active_hours)) +
   # Áreas de contexto histórico usando la paleta de grises
   annotate("rect", xmin = min(device$timestamp, na.rm = TRUE), xmax = fecha_update, 
            ymin = 0, ymax = Inf, alpha = 0.4, fill = gris_claro) +
@@ -192,3 +207,11 @@ ggplot(device, aes(x = timestamp, y = active_hours)) +
     y = "Tiempo Activo Continuo"
   ) +
   tema_presentacion
+
+p_html <- ggplotly(p)
+
+saveWidget(
+  widget = p_html, 
+  file = "grafico_uptime_hub.html", 
+  selfcontained = TRUE
+)
