@@ -4,17 +4,14 @@ library(dplyr)
 library(readr)
 library(lubridate)
 
-df <- read_csv("/home/franco/measurement.csv")
-df_w <- read_csv("/home/franco/weather.csv")
-df$timestamp <- ymd_hms(df$timestamp, tz = "America/Buenos_Aires")
-df_w$timestamp <- ymd_hms(df_w$timestamp, tz = "America/Buenos_Aires")
-df <- df %>% filter(year(timestamp) == 2026)
-
-
 
 #////////////////////
 # Comparacion de temperatura interna hora a hora en promedio por dia
 #////////////////////
+df <- read_csv("/home/franco/measurement.csv")
+df$timestamp <- ymd_hms(df$timestamp, tz = "America/Buenos_Aires")
+df <- df %>% filter(year(timestamp) == 2026)
+
 net = "sala8"
 
 df_perfil <- df %>% filter (network_id == net)
@@ -42,6 +39,10 @@ ggplot(df_perfil, aes(x = hora_frac, y = temp_promedio, color = dia_sem)) +
 #////////////////////
 # Comparacion de humedad interna hora a hora en promedio por dia
 #////////////////////
+df <- read_csv("/home/franco/measurement.csv")
+df$timestamp <- ymd_hms(df$timestamp, tz = "America/Buenos_Aires")
+df <- df %>% filter(year(timestamp) == 2026)
+
 net = "sala8"
 
 df_perfil <- df %>% filter (network_id == net)
@@ -69,9 +70,16 @@ ggplot(df_perfil, aes(x = hora_frac, y = hum_promedio, color = dia_sem)) +
 #////////////////////
 # Comparacion de calidad interna del aire hora a hora en promedio por dia
 #////////////////////
-net = "sala8"
 
-df_perfil <- df %>% filter (network_id == net)
+#//////////////
+# sala 7
+df <- read_csv("/home/franco/measurement.csv")
+df$timestamp <- ymd_hms(df$timestamp, tz = "America/Buenos_Aires")
+df <- df %>% filter(year(timestamp) == 2026)
+
+net = "sala7"
+
+df <- df %>% filter (network_id == net)
 
 df_perfil <- df %>%
   mutate(
@@ -84,11 +92,42 @@ df_perfil <- df %>%
 ggplot(df_perfil, aes(x = hora_frac, y = air, color = dia_sem)) +
   geom_line(linewidth = 0.8) +
   scale_x_continuous(breaks = seq(0, 23, 2), labels = sprintf("%02d:00", seq(0, 23, 2))) +
-  coord_cartesian(ylim = c(89, 100)) +         
-  scale_y_continuous(breaks = seq(89, 100, 2)) +
+  coord_cartesian(ylim = c(84, 97.5)) +         
+  scale_y_continuous(breaks = seq(84, 97.5, 2)) +
   scale_color_viridis_d(option = "turbo") +   
   labs(x = "Hora del día", y = "Calidad del aire (0-100)", color = "Día") +
   theme_minimal()
+
+
+#//////////////
+# sala 8
+df <- read_csv("/home/franco/measurement.csv")
+df$timestamp <- ymd_hms(df$timestamp, tz = "America/Buenos_Aires")
+df <- df %>% filter(year(timestamp) == 2026)
+
+net = "sala8"
+
+df <- df %>% filter (network_id == net)
+
+df_perfil <- df %>%
+  mutate(
+    dia_sem   = wday(timestamp, label = TRUE, week_start = 1),
+    hora_frac = floor((hour(timestamp) * 60 + minute(timestamp)) / 30) * 30 / 60
+  ) %>%
+  group_by(dia_sem, hora_frac) %>%
+  summarise(air = mean(air_quality, na.rm = TRUE), .groups = "drop")
+
+ggplot(df_perfil, aes(x = hora_frac, y = air, color = dia_sem)) +
+  geom_line(linewidth = 0.8) +
+  scale_x_continuous(breaks = seq(0, 23, 2), labels = sprintf("%02d:00", seq(0, 23, 2))) +
+  coord_cartesian(ylim = c(90.5, 100)) +         
+  scale_y_continuous(breaks = seq(90.5, 100, 1)) +
+  scale_color_viridis_d(option = "turbo") +   
+  labs(x = "Hora del día", y = "Calidad del aire (0-100)", color = "Día") +
+  theme_minimal()
+
+
+
 
 
 
@@ -97,6 +136,12 @@ ggplot(df_perfil, aes(x = hora_frac, y = air, color = dia_sem)) +
 #////////////////////
 m = 09
 days = "2 days"
+
+df <- read_csv("/home/franco/measurement.csv")
+df_w <- read_csv("/home/franco/weather.csv")
+df$timestamp <- ymd_hms(df$timestamp, tz = "America/Buenos_Aires")
+df_w$timestamp <- ymd_hms(df_w$timestamp, tz = "America/Buenos_Aires")
+df <- df %>% filter(year(timestamp) == 2026)
 
 df_m <- df %>% filter(month(timestamp) == m)
 df_m_w <- df_w %>% filter(month(timestamp) == m)
@@ -135,6 +180,10 @@ ggplot() +
 #////////////////////
 m = 08
 m2 = 09
+
+df <- read_csv("/home/franco/measurement.csv")
+df$timestamp <- ymd_hms(df$timestamp, tz = "America/Buenos_Aires")
+df <- df %>% filter(year(timestamp) == 2026)
 
 df_m <- df %>% filter(month(timestamp) == m)
 df_m_n <- df_m %>% filter(network_id == net)
