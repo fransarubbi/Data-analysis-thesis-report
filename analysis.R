@@ -5,6 +5,33 @@ library(readr)
 library(lubridate)
 
 
+azul_profundo <- "#003785"
+celeste       <- "#5DADE2"
+gris_claro    <- "#D5DBDB"
+gris_oscuro   <- "#5D6D7E"
+negro_texto   <- "#17202A"
+
+
+# Generador de gradiente para los 7 días de la semana (Gris -> Celeste -> Azul Profundo)
+paleta_semana <- colorRampPalette(c(gris_claro, celeste, azul_profundo))(7)
+
+# Tema formal y moderno reutilizable para todos los gráficos
+tema_presentacion <- theme_minimal(base_family = "sans", base_size = 12) +
+  theme(
+    plot.title       = element_text(face = "bold", color = negro_texto, size = 16, margin = margin(b = 8)),
+    plot.subtitle    = element_text(color = gris_oscuro, size = 12, margin = margin(b = 15)),
+    axis.title.x     = element_text(face = "bold", color = negro_texto, margin = margin(t = 10)),
+    axis.title.y     = element_text(face = "bold", color = negro_texto, margin = margin(r = 10)),
+    axis.text        = element_text(color = negro_texto, size = 10),
+    panel.grid.major = element_line(color = "#EBF5FB", linewidth = 0.5), # Grilla celeste muy sutil
+    panel.grid.minor = element_blank(), # Eliminamos la grilla menor para mayor limpieza
+    legend.position  = "bottom",
+    legend.title     = element_text(face = "bold", color = negro_texto),
+    legend.text      = element_text(color = gris_oscuro, size = 11),
+    plot.margin      = margin(t = 20, r = 20, b = 20, l = 20)
+  )
+
+
 #////////////////////
 # Comparacion de temperatura interna hora a hora en promedio por dia
 #////////////////////
@@ -19,20 +46,25 @@ df_perfil <- df %>% filter (network_id == net)
 df_perfil <- df_perfil %>%
   mutate(
     dia_sem   = wday(timestamp, label = TRUE, week_start = 1),
-    # hora fraccionaria redondeada a bloques de 30 min
     hora_frac = floor((hour(timestamp) * 60 + minute(timestamp)) / 30) * 30 / 60
   ) %>%
   group_by(dia_sem, hora_frac) %>%
   summarise(temp_promedio = mean(temperature, na.rm = TRUE), .groups = "drop")
 
 ggplot(df_perfil, aes(x = hora_frac, y = temp_promedio, color = dia_sem)) +
-  geom_line(linewidth = 0.8) +
+  geom_line(linewidth = 1.2, alpha = 0.9) +
   scale_x_continuous(breaks = seq(0, 23, 2), labels = sprintf("%02d:00", seq(0, 23, 2))) +
   coord_cartesian(ylim = c(20, 24.5)) +         
   scale_y_continuous(breaks = seq(20, 24.5, 0.5)) +
-  scale_color_viridis_d(option = "turbo") +   # o "hue", "manual", etc.
-  labs(x = "Hora del día", y = "Temperatura (°C)", color = "Día") +
-  theme_minimal()
+  scale_color_manual(values = paleta_semana) +   
+  labs(
+    title = "Perfil Diario de Temperatura Interna",
+    subtitle = paste("Variación horaria promedio según el día de la semana - Red:", net),
+    x = "Hora del día", 
+    y = "Temperatura (°C)", 
+    color = "Día"
+  ) +
+  tema_presentacion
 
 
 
@@ -50,20 +82,25 @@ df_perfil <- df %>% filter (network_id == net)
 df_perfil <- df %>%
   mutate(
     dia_sem   = wday(timestamp, label = TRUE, week_start = 1),
-    # hora fraccionaria redondeada a bloques de 30 min
     hora_frac = floor((hour(timestamp) * 60 + minute(timestamp)) / 30) * 30 / 60
   ) %>%
   group_by(dia_sem, hora_frac) %>%
   summarise(hum_promedio = mean(humidity, na.rm = TRUE), .groups = "drop")
 
 ggplot(df_perfil, aes(x = hora_frac, y = hum_promedio, color = dia_sem)) +
-  geom_line(linewidth = 0.8) +
+  geom_line(linewidth = 1.2, alpha = 0.9) +
   scale_x_continuous(breaks = seq(0, 23, 2), labels = sprintf("%02d:00", seq(0, 23, 2))) +
   coord_cartesian(ylim = c(24, 35)) +         
   scale_y_continuous(breaks = seq(24, 35, 2)) +
-  scale_color_viridis_d(option = "turbo") +   # o "hue", "manual", etc.
-  labs(x = "Hora del día", y = "Humedad (%)", color = "Día") +
-  theme_minimal()
+  scale_color_manual(values = paleta_semana) +   
+  labs(
+    title = "Perfil Diario de Humedad Relativa",
+    subtitle = paste("Fluctuación horaria promedio por día de la semana - Red:", net),
+    x = "Hora del día", 
+    y = "Humedad (%)", 
+    color = "Día"
+  ) +
+  tema_presentacion
 
 
 
@@ -90,13 +127,19 @@ df_perfil <- df %>%
   summarise(air = mean(air_quality, na.rm = TRUE), .groups = "drop")
 
 ggplot(df_perfil, aes(x = hora_frac, y = air, color = dia_sem)) +
-  geom_line(linewidth = 0.8) +
+  geom_line(linewidth = 1.2, alpha = 0.9) +
   scale_x_continuous(breaks = seq(0, 23, 2), labels = sprintf("%02d:00", seq(0, 23, 2))) +
   coord_cartesian(ylim = c(84, 97.5)) +         
   scale_y_continuous(breaks = seq(84, 97.5, 2)) +
-  scale_color_viridis_d(option = "turbo") +   
-  labs(x = "Hora del día", y = "Calidad del aire (0-100)", color = "Día") +
-  theme_minimal()
+  scale_color_manual(values = paleta_semana) +   
+  labs(
+    title = "Monitoreo de Calidad de Aire (AQI)",
+    subtitle = "Tendencia horaria semanal - Red: sala7",
+    x = "Hora del día", 
+    y = "Índice de Calidad (0-100)", 
+    color = "Día"
+  ) +
+  tema_presentacion
 
 
 #//////////////
@@ -118,15 +161,19 @@ df_perfil <- df %>%
   summarise(air = mean(air_quality, na.rm = TRUE), .groups = "drop")
 
 ggplot(df_perfil, aes(x = hora_frac, y = air, color = dia_sem)) +
-  geom_line(linewidth = 0.8) +
+  geom_line(linewidth = 1.2, alpha = 0.9) +
   scale_x_continuous(breaks = seq(0, 23, 2), labels = sprintf("%02d:00", seq(0, 23, 2))) +
   coord_cartesian(ylim = c(90.5, 100)) +         
   scale_y_continuous(breaks = seq(90.5, 100, 1)) +
-  scale_color_viridis_d(option = "turbo") +   
-  labs(x = "Hora del día", y = "Calidad del aire (0-100)", color = "Día") +
-  theme_minimal()
-
-
+  scale_color_manual(values = paleta_semana) +   
+  labs(
+    title = "Monitoreo de Calidad de Aire (AQI)",
+    subtitle = "Tendencia horaria semanal - Red: sala8",
+    x = "Hora del día", 
+    y = "Índice de Calidad (0-100)", 
+    color = "Día"
+  ) +
+  tema_presentacion
 
 
 
@@ -166,12 +213,21 @@ df_m_s_w <- df_m_w %>%
   )
 
 ggplot() +
-  geom_line(data = df_m_n_s, aes(x = timestamp_s, y = temp_promedio), color = "blue") +
-  geom_line(data = df_m_s_w, aes(x = timestamp_s_w, y = temp_promedio), color = "red") +
+  # Se incorpora la estética 'color' dentro de aes() para que genere la leyenda automáticamente
+  geom_line(data = df_m_n_s, aes(x = timestamp_s, y = temp_promedio, color = "Interna"), linewidth = 1) +
+  geom_line(data = df_m_s_w, aes(x = timestamp_s_w, y = temp_promedio, color = "Externa"), linewidth = 1) +
   coord_cartesian(ylim = c(0, 25.5)) +         
-  scale_y_continuous(breaks = seq(0, 25.5, 1)) +
-  scale_x_datetime(date_labels = "%b %d\n%H:%M", date_breaks = days) +
-  theme_minimal()
+  scale_y_continuous(breaks = seq(0, 25.5, 5)) +
+  scale_x_datetime(date_labels = "%d %b", date_breaks = days) +
+  scale_color_manual(values = c("Interna" = azul_profundo, "Externa" = gris_oscuro)) +
+  labs(
+    title = "Contraste Térmico Ambiental",
+    subtitle = "Temperatura interna del sistema vs. Condiciones meteorológicas externas",
+    x = "Día del Mes",
+    y = "Temperatura (°C)",
+    color = "Ubicación del Sensor"
+  ) +
+  tema_presentacion
 
 
 
@@ -216,13 +272,20 @@ df_m2_n_s <- df_m2_n %>%
 ggplot() +
   geom_line(data = df_m_n_s,
             aes(x = dia, y = temp_promedio, color = "Agosto"),
-            linewidth = 0.7) +
+            linewidth = 1, alpha = 0.8) +
   geom_line(data = df_m2_n_s,
             aes(x = dia, y = temp_promedio, color = "Septiembre"),
-            linewidth = 0.7) +
-  scale_color_manual(values = c("Septiembre" = "blue", "Agosto" = "red")) +
+            linewidth = 1) +
+  # Usamos el celeste para el mes pasado y el azul dominante para el mes más reciente
+  scale_color_manual(values = c("Septiembre" = azul_profundo, "Agosto" = celeste)) +
   scale_x_continuous(breaks = 1:30) +
   coord_cartesian(ylim = c(15.5, 26)) +         
-  scale_y_continuous(breaks = seq(15.5, 26, 1)) +
-  labs(x = "Día del mes", y = "Temperatura (°C)", color = "Mes") +
-  theme_minimal()
+  scale_y_continuous(breaks = seq(15.5, 26, 2)) +
+  labs(
+    title = "Evolución Térmica Intermensual",
+    subtitle = "Análisis comparativo: Agosto vs. Septiembre",
+    x = "Día del mes", 
+    y = "Temperatura (°C)", 
+    color = "Mes de Registro"
+  ) +
+  tema_presentacion
