@@ -7,6 +7,27 @@ library(scales)
 library(patchwork)
 
 
+azul_profundo <- "#003785"
+celeste       <- "#5DADE2"
+gris_claro    <- "#E5E7E9"
+gris_medio    <- "#B2BABB"
+gris_oscuro   <- "#5D6D7E"
+negro_texto   <- "#17202A"
+
+tema_presentacion <- theme_minimal(base_family = "sans", base_size = 12) +
+  theme(
+    plot.title       = element_text(face = "bold", color = negro_texto, size = 16, margin = margin(b = 8)),
+    plot.subtitle    = element_text(color = gris_oscuro, size = 12, margin = margin(b = 15)),
+    axis.title.x     = element_text(face = "bold", color = negro_texto, margin = margin(t = 10)),
+    axis.title.y     = element_text(face = "bold", color = negro_texto, margin = margin(r = 10)),
+    axis.text        = element_text(color = negro_texto, size = 10),
+    panel.grid.major = element_line(color = "#F2F3F4", linewidth = 0.5), 
+    panel.grid.minor = element_blank(), 
+    legend.position  = "bottom",
+    plot.margin      = margin(t = 20, r = 20, b = 20, l = 20)
+  )
+
+
 #///////////////////////
 # 1. Analisis del Edge
 #///////////////////////
@@ -22,25 +43,20 @@ device <- df_me %>%
   mutate(active_hours = uptime_seconds / 3600)
 
 ggplot(device, aes(x = timestamp, y = active_hours)) +
-  geom_line(color = "#2c3e50", linewidth = 0.5) +
+  geom_line(color = azul_profundo, linewidth = 0.8) +
   scale_y_continuous(
     trans = pseudo_log_trans(base = 10),
     breaks = c(0, 1, 12, 24, 24*7, 24*15, 24*40),
-    labels = c("0", "1 h", "12 hs", "1 día", "1 semana", "15 días", "40 días")
+    labels = c("0", "1 h", "12 hs", "1 día", "1 sem", "15 días", "40 días")
   ) +
   scale_x_datetime(date_labels = "%d %b\n%Y", date_breaks = "1 week") +
   labs(
-    title = "Evolución de Estabilidad de los Edge (Uptime)",
-    x = "Fecha",
+    title = "Estabilidad Operativa: Nodos Edge (Uptime)",
+    subtitle = "Registro de tiempo activo continuo y resiliencia del servicio",
+    x = "Fecha de Registro",
     y = "Tiempo Activo Continuo"
   ) +
-  theme_minimal() +
-  theme(
-    plot.title = element_text(face = "bold", size = 15),
-    plot.subtitle = element_text(color = "grey40", size = 11),
-    panel.grid.minor = element_blank(),
-    axis.text = element_text(size = 10)
-  )
+  tema_presentacion
 
 
 
@@ -72,20 +88,29 @@ df_ram_used <- df_ram_used %>%
   )
 
 p_total <- ggplot(df_ram_total, aes(x = timestamp_s, y = ram_promedio)) +
-  geom_line(color = "blue") +
-  scale_y_continuous(n.breaks = 8) + # Máximo detalle en la escala 200-400
-  theme_minimal() +
-  labs(y = "RAM Bruta Usada (MB)") +
-  theme(axis.title.x = element_blank(), axis.text.x = element_blank()) # Ocultamos el texto de la fecha aquí
+  geom_line(color = azul_profundo, linewidth = 1) +
+  scale_y_continuous(n.breaks = 6) + 
+  labs(y = "RAM Global Usada (MB)") +
+  tema_presentacion +
+  theme(axis.title.x = element_blank(), axis.text.x = element_blank())
 
 p_used <- ggplot(df_ram_used, aes(x = timestamp_s, y = ram_promedio)) +
-  geom_line(color = "red") +
-  scale_y_continuous(n.breaks = 8) + # Máximo detalle en la escala 10-15
-  scale_x_datetime(date_labels = "%b %d\n%H:%M", date_breaks = days) +
-  theme_minimal() +
-  labs(y = "RAM Neta Usada (MB)", x = "Timestamp")
+  geom_line(color = celeste, linewidth = 1) +
+  scale_y_continuous(n.breaks = 6) + 
+  scale_x_datetime(date_labels = "%d %b\n%H:%M", date_breaks = days) +
+  labs(y = "RAM del Servicio (MB)", x = "Línea Temporal") +
+  tema_presentacion
 
-p_total / p_used
+# Composición visual con patchwork
+(p_total / p_used) + 
+  plot_annotation(
+    title = "Consumo de Memoria RAM: Global vs. Servicio Específico",
+    subtitle = "Comparativa de impacto del servicio sobre los recursos del sistema base",
+    theme = theme(
+      plot.title = element_text(face = "bold", color = negro_texto, size = 16),
+      plot.subtitle = element_text(color = gris_oscuro, size = 12)
+    )
+  )
 
 
 
@@ -107,19 +132,20 @@ sender <- df_mo %>%
   select(timestamp, sender_user_id)
 
 ggplot(sender, aes(x = sender_user_id)) +
-  geom_bar(fill = "cyan", color = "black") +
+  geom_bar(fill = celeste, color = azul_profundo, width = 0.6) +
   coord_cartesian(ylim = c(0, 140000)) +         
   scale_y_continuous(
     breaks = seq(0, 140000, 20000),
     labels = scales::label_number(scale = 1e-3, suffix = "k")
   ) +
-  labs(title = "Distribución de los mensajes de monitoreo (Hub)",
-       x = "MAC Hub",
-       y = "Cantidad de mensajes de monitoreo") +
-  theme(
-    plot.title = element_text(face = "bold", size = 15),
-    axis.text.x = element_text(angle = 45, hjust = 1)
-  )
+  labs(
+    title = "Distribución de Carga: Mensajes de Monitoreo (Hub)",
+    subtitle = "Volumen de transmisión por identificador físico (MAC Address)",
+    x = "Dirección MAC del Dispositivo Hub",
+    y = "Volumen de Mensajes"
+  ) +
+  tema_presentacion +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, face = "bold"))
 
 
 
@@ -143,34 +169,26 @@ fecha_corte_luz <- as.POSIXct("2026-08-9 00:00:00")
 fecha_vuelta_luz <- as.POSIXct("2026-08-10 00:00:00")
 
 ggplot(device, aes(x = timestamp, y = active_hours)) +
+  # Áreas de contexto histórico usando la paleta de grises
   annotate("rect", xmin = min(device$timestamp, na.rm = TRUE), xmax = fecha_update, 
-           ymin = 0, ymax = Inf, alpha = 0.08, fill = "red") +
+           ymin = 0, ymax = Inf, alpha = 0.4, fill = gris_claro) +
   annotate("text", x = mean(c(min(device$timestamp, na.rm = TRUE), fecha_update)), 
-           y = max(device$active_hours, na.rm = TRUE) * 0.7, 
-           label = "Fase\nInestable", color = "darkred", size = 4) +
-  geom_line(color = "#2c3e50", linewidth = 0.5) +
+           y = 30, label = "Fase Inicial\n(Inestable)", color = gris_oscuro, size = 3.5, fontface = "italic") +
   annotate("rect", xmin = fecha_corte_luz, xmax = fecha_vuelta_luz, 
-           ymin = 0, ymax = Inf, alpha = 0.08, fill = "orange") +
-  geom_line(color = "#2c3e50", linewidth = 0.5) +
-  annotate("rect", xmin = fecha_corte_luz, xmax = fecha_vuelta_luz, 
-           ymin = 0, ymax = Inf, alpha = 0.08, fill = "orange") +
+           ymin = 0, ymax = Inf, alpha = 0.3, fill = gris_medio) +
+  annotate("text", x = fecha_corte_luz, y = 220, 
+           label = " Corte Eléctrico", hjust = -0.1, color = negro_texto, size = 3.5) +
+  geom_line(color = azul_profundo, linewidth = 0.8) +
   scale_y_continuous(
     trans = pseudo_log_trans(base = 10),
-    # Elegimos cortes narrativos y los traducimos a etiquetas humanas
     breaks = c(0, 1, 12, 24, 24*7, 24*15, 24*40),
-    labels = c("0", "1 h", "12 hs", "1 día", "1 semana", "15 días", "40 días")
+    labels = c("0", "1 h", "12 hs", "1 día", "1 sem", "15 días", "40 días")
   ) +
-  scale_x_datetime(date_labels = "%d %b\n%Y", date_breaks = "1 week") +
+  scale_x_datetime(date_labels = "%d %b", date_breaks = "1 week") +
   labs(
-    title = "Evolución de Estabilidad de los Hub (Uptime)",
-    subtitle = "Transición de reinicios constantes a un servicio continuo",
-    x = "Fecha",
+    title = "Estabilidad Operativa Histórica de un Hub Particular",
+    subtitle = paste("Transición hacia la disponibilidad continua - Dispositivo:", mac),
+    x = "Fecha de Registro",
     y = "Tiempo Activo Continuo"
   ) +
-  theme_minimal() +
-  theme(
-    plot.title = element_text(face = "bold", size = 15),
-    plot.subtitle = element_text(color = "grey40", size = 11),
-    panel.grid.minor = element_blank(),
-    axis.text = element_text(size = 10)
-  )
+  tema_presentacion

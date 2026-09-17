@@ -15,7 +15,7 @@ negro_texto   <- "#17202A"
 # Generador de gradiente para los 7 días de la semana (Gris -> Celeste -> Azul Profundo)
 paleta_semana <- colorRampPalette(c(gris_claro, celeste, azul_profundo))(7)
 
-# Tema formal y moderno reutilizable para todos los gráficos
+# Tema reutilizable para todos los graficos
 tema_presentacion <- theme_minimal(base_family = "sans", base_size = 12) +
   theme(
     plot.title       = element_text(face = "bold", color = negro_texto, size = 16, margin = margin(b = 8)),
@@ -23,8 +23,8 @@ tema_presentacion <- theme_minimal(base_family = "sans", base_size = 12) +
     axis.title.x     = element_text(face = "bold", color = negro_texto, margin = margin(t = 10)),
     axis.title.y     = element_text(face = "bold", color = negro_texto, margin = margin(r = 10)),
     axis.text        = element_text(color = negro_texto, size = 10),
-    panel.grid.major = element_line(color = "#EBF5FB", linewidth = 0.5), # Grilla celeste muy sutil
-    panel.grid.minor = element_blank(), # Eliminamos la grilla menor para mayor limpieza
+    panel.grid.major = element_line(color = "#EBF5FB", linewidth = 0.5), 
+    panel.grid.minor = element_blank(),
     legend.position  = "bottom",
     legend.title     = element_text(face = "bold", color = negro_texto),
     legend.text      = element_text(color = gris_oscuro, size = 11),
@@ -213,7 +213,7 @@ df_m_s_w <- df_m_w %>%
   )
 
 ggplot() +
-  # Se incorpora la estética 'color' dentro de aes() para que genere la leyenda automáticamente
+  # Se incorpora la estética 'color' dentro de aes() para que genere la leyenda automaticamente
   geom_line(data = df_m_n_s, aes(x = timestamp_s, y = temp_promedio, color = "Interna"), linewidth = 1) +
   geom_line(data = df_m_s_w, aes(x = timestamp_s_w, y = temp_promedio, color = "Externa"), linewidth = 1) +
   coord_cartesian(ylim = c(0, 25.5)) +         
@@ -276,7 +276,6 @@ ggplot() +
   geom_line(data = df_m2_n_s,
             aes(x = dia, y = temp_promedio, color = "Septiembre"),
             linewidth = 1) +
-  # Usamos el celeste para el mes pasado y el azul dominante para el mes más reciente
   scale_color_manual(values = c("Septiembre" = azul_profundo, "Agosto" = celeste)) +
   scale_x_continuous(breaks = 1:30) +
   coord_cartesian(ylim = c(15.5, 26)) +         
