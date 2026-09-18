@@ -22,28 +22,60 @@ tema_presentacion <- theme_minimal(base_family = "sans", base_size = 12) +
   theme(
     plot.title       = element_text(face = "bold", color = negro_texto, size = 16, margin = margin(b = 8)),
     plot.subtitle    = element_text(color = gris_oscuro, size = 12, margin = margin(b = 15)),
-    axis.title.x     = element_text(face = "bold", color = negro_texto, margin = margin(t = 10)),
-    axis.title.y     = element_text(face = "bold", color = negro_texto, margin = margin(r = 10)),
+    axis.title.x     = element_text(face = "plain", color = negro_texto, margin = margin(t = 10)),
+    axis.title.y     = element_text(face = "plain", color = negro_texto, margin = margin(r = 10)),
     axis.text        = element_text(color = negro_texto, size = 10),
-    panel.grid.major = element_line(color = "#EBF5FB", linewidth = 0.5), 
+    panel.grid.major = element_line(color = "#EBF5FB", linewidth = 0.5),
     panel.grid.minor = element_blank(),
-    legend.position  = "bottom",
-    legend.title     = element_text(face = "bold", color = negro_texto),
+    legend.position  = "right",
+    legend.title     = element_text(face = "plain", color = negro_texto),
+    legend.title.position = "top",
     legend.text      = element_text(color = gris_oscuro, size = 11),
     plot.margin      = margin(t = 20, r = 20, b = 20, l = 20)
   )
 
 
-#////////////////////
+# ============================================================
+# Función auxiliar: convierte un ggplot en un widget plotly
+# ============================================================
+exportar_html <- function(p, archivo, ancho_leyenda = 190, selfcontained = TRUE) {
+  titulo    <- p$labels$title
+  p_sin_titulos <- p + labs(title = NULL, subtitle = NULL)
+  p_ly <- ggplotly(p_sin_titulos, tooltip = c("x", "y", "colour")) %>%
+    config(displayModeBar = FALSE)
+  texto_titulo <- paste0(
+    "<b style='font-size:18px; color:", negro_texto, "'>", titulo, "</b>"
+  )
+  p_ly <- p_ly %>%
+    layout(
+      title = list(text = texto_titulo, x = 0.01, xanchor = "left", y = 0.98, yanchor = "top"),
+      legend = list(
+        orientation = "v",     # leyenda vertical
+        x = 1.02, xanchor = "left",
+        y = 0.5,  yanchor = "middle",
+        bgcolor = "rgba(255,255,255,0)",
+        bordercolor = "rgba(0,0,0,0)"
+      ),
+      margin = list(t = 70, r = ancho_leyenda, b = 70, l = 70)
+    )
+  print(p_ly)
+  saveWidget(widget = p_ly, file = archivo, selfcontained = selfcontained)
+  invisible(p_ly)
+}
+
+
+# ============================================================
+# ANALISIS
+# ============================================================
+
 # Comparacion de temperatura interna hora a hora en promedio por dia
-#////////////////////
 df <- read_csv("/home/franco/measurement.csv")
 df$timestamp <- ymd_hms(df$timestamp, tz = "America/Buenos_Aires")
 df <- df %>% filter(year(timestamp) == 2026)
 
 net = "sala8"
 
-df_perfil <- df %>% filter (network_id == net)
+df_perfil <- df %>% filter(network_id == net)
 
 df_perfil <- df_perfil %>%
   mutate(
@@ -53,35 +85,36 @@ df_perfil <- df_perfil %>%
   group_by(dia_sem, hora_frac) %>%
   summarise(temp_promedio = mean(temperature, na.rm = TRUE), .groups = "drop")
 
-ggplot(df_perfil, aes(x = hora_frac, y = temp_promedio, color = dia_sem)) +
+p1 <- ggplot(df_perfil, aes(x = hora_frac, y = temp_promedio, color = dia_sem)) +
   geom_line(linewidth = 1.2, alpha = 0.9) +
   scale_x_continuous(breaks = seq(0, 23, 2), labels = sprintf("%02d:00", seq(0, 23, 2))) +
-  coord_cartesian(ylim = c(20, 24.5)) +         
+  coord_cartesian(ylim = c(20, 24.5)) +
   scale_y_continuous(breaks = seq(20, 24.5, 0.5)) +
-  scale_color_manual(values = paleta_semana) +   
+  scale_color_manual(values = paleta_semana) +
   labs(
     title = "Perfil Diario de Temperatura Interna",
     subtitle = paste("Variación horaria promedio según el día de la semana - Red:", net),
-    x = "Hora del día", 
-    y = "Temperatura (°C)", 
+    x = "Hora del día",
+    y = "Temperatura (°C)",
     color = "Día"
   ) +
   tema_presentacion
 
+p1
 
 
-#////////////////////
+
+
 # Comparacion de humedad interna hora a hora en promedio por dia
-#////////////////////
 df <- read_csv("/home/franco/measurement.csv")
 df$timestamp <- ymd_hms(df$timestamp, tz = "America/Buenos_Aires")
 df <- df %>% filter(year(timestamp) == 2026)
 
 net = "sala8"
 
-df_perfil <- df %>% filter (network_id == net)
+df_perfil <- df %>% filter(network_id == net)
 
-df_perfil <- df %>%
+df_perfil <- df_perfil %>%
   mutate(
     dia_sem   = wday(timestamp, label = TRUE, week_start = 1),
     hora_frac = floor((hour(timestamp) * 60 + minute(timestamp)) / 30) * 30 / 60
@@ -89,28 +122,29 @@ df_perfil <- df %>%
   group_by(dia_sem, hora_frac) %>%
   summarise(hum_promedio = mean(humidity, na.rm = TRUE), .groups = "drop")
 
-ggplot(df_perfil, aes(x = hora_frac, y = hum_promedio, color = dia_sem)) +
+p2 <- ggplot(df_perfil, aes(x = hora_frac, y = hum_promedio, color = dia_sem)) +
   geom_line(linewidth = 1.2, alpha = 0.9) +
   scale_x_continuous(breaks = seq(0, 23, 2), labels = sprintf("%02d:00", seq(0, 23, 2))) +
-  coord_cartesian(ylim = c(24, 35)) +         
+  coord_cartesian(ylim = c(24, 35)) +
   scale_y_continuous(breaks = seq(24, 35, 2)) +
-  scale_color_manual(values = paleta_semana) +   
+  scale_color_manual(values = paleta_semana) +
   labs(
     title = "Perfil Diario de Humedad Relativa",
     subtitle = paste("Fluctuación horaria promedio por día de la semana - Red:", net),
-    x = "Hora del día", 
-    y = "Humedad (%)", 
+    x = "Hora del día",
+    y = "Humedad (%)",
     color = "Día"
   ) +
   tema_presentacion
 
+p2
 
 
-#////////////////////
+
+
 # Comparacion de calidad interna del aire hora a hora en promedio por dia
-#////////////////////
 
-#//////////////
+#----------
 # sala 7
 df <- read_csv("/home/franco/measurement.csv")
 df$timestamp <- ymd_hms(df$timestamp, tz = "America/Buenos_Aires")
@@ -118,7 +152,7 @@ df <- df %>% filter(year(timestamp) == 2026)
 
 net = "sala7"
 
-df <- df %>% filter (network_id == net)
+df <- df %>% filter(network_id == net)
 
 df_perfil <- df %>%
   mutate(
@@ -128,23 +162,25 @@ df_perfil <- df %>%
   group_by(dia_sem, hora_frac) %>%
   summarise(air = mean(air_quality, na.rm = TRUE), .groups = "drop")
 
-ggplot(df_perfil, aes(x = hora_frac, y = air, color = dia_sem)) +
-  geom_line(linewidth = 1.2, alpha = 0.9) +
+p3 <- ggplot(df_perfil, aes(x = hora_frac, y = air, color = dia_sem)) +
+  geom_line(linewidth = 1, alpha = 0.9) +
   scale_x_continuous(breaks = seq(0, 23, 2), labels = sprintf("%02d:00", seq(0, 23, 2))) +
-  coord_cartesian(ylim = c(84, 97.5)) +         
+  coord_cartesian(ylim = c(84, 97.5)) +
   scale_y_continuous(breaks = seq(84, 97.5, 2)) +
-  scale_color_manual(values = paleta_semana) +   
+  scale_color_manual(values = paleta_semana) +
   labs(
     title = "Monitoreo de Calidad de Aire",
-    subtitle = "Tendencia horaria semanal - Red: sala7",
-    x = "Hora del día", 
-    y = "Índice de Calidad (0-100)", 
+    x = "Hora del día",
+    y = "Índice de Calidad (0-100)",
     color = "Día"
   ) +
   tema_presentacion
 
+p3
+exportar_html(p3, "grafico_calidad_aire_sala7.html")
+#------------------------------------------------------------
 
-#//////////////
+#----------
 # sala 8
 df <- read_csv("/home/franco/measurement.csv")
 df$timestamp <- ymd_hms(df$timestamp, tz = "America/Buenos_Aires")
@@ -152,7 +188,7 @@ df <- df %>% filter(year(timestamp) == 2026)
 
 net = "sala8"
 
-df <- df %>% filter (network_id == net)
+df <- df %>% filter(network_id == net)
 
 df_perfil <- df %>%
   mutate(
@@ -162,27 +198,27 @@ df_perfil <- df %>%
   group_by(dia_sem, hora_frac) %>%
   summarise(air = mean(air_quality, na.rm = TRUE), .groups = "drop")
 
-ggplot(df_perfil, aes(x = hora_frac, y = air, color = dia_sem)) +
+p4 <- ggplot(df_perfil, aes(x = hora_frac, y = air, color = dia_sem)) +
   geom_line(linewidth = 1.2, alpha = 0.9) +
   scale_x_continuous(breaks = seq(0, 23, 2), labels = sprintf("%02d:00", seq(0, 23, 2))) +
-  coord_cartesian(ylim = c(90.5, 100)) +         
+  coord_cartesian(ylim = c(90.5, 100)) +
   scale_y_continuous(breaks = seq(90.5, 100, 1)) +
-  scale_color_manual(values = paleta_semana) +   
+  scale_color_manual(values = paleta_semana) +
   labs(
     title = "Monitoreo de Calidad de Aire (AQI)",
     subtitle = "Tendencia horaria semanal - Red: sala8",
-    x = "Hora del día", 
-    y = "Índice de Calidad (0-100)", 
+    x = "Hora del día",
+    y = "Índice de Calidad (0-100)",
     color = "Día"
   ) +
   tema_presentacion
 
+p4
+#------------------------------------------------------------
 
 
 
-#////////////////////
 # Temperatura mensual: promedio interno vs promedio externo
-#////////////////////
 m = 09
 days = "2 days"
 
@@ -194,14 +230,14 @@ df <- df %>% filter(year(timestamp) == 2026)
 
 df_m <- df %>% filter(month(timestamp) == m)
 df_m_w <- df_w %>% filter(month(timestamp) == m)
-df_m_n <- df_m %>% filter (network_id == net)
+df_m_n <- df_m %>% filter(network_id == net)
 
 df_m_n_s <- df_m_n %>%
   mutate(timestamp_s = floor_date(timestamp, unit = samp)) %>%
   group_by(timestamp_s) %>%
   summarise(
     temp_promedio = mean(temperature, na.rm = TRUE),
-    n_datos        = n(), 
+    n_datos        = n(),
     .groups = "drop"
   )
 
@@ -214,11 +250,10 @@ df_m_s_w <- df_m_w %>%
     .groups = "drop"
   )
 
-p <- ggplot() +
-  # Se incorpora la estética 'color' dentro de aes() para que genere la leyenda automaticamente
+p5 <- ggplot() +
   geom_line(data = df_m_n_s, aes(x = timestamp_s, y = temp_promedio, color = "Interna"), linewidth = 1) +
   geom_line(data = df_m_s_w, aes(x = timestamp_s_w, y = temp_promedio, color = "Externa"), linewidth = 1) +
-  coord_cartesian(ylim = c(0, 25.5)) +         
+  coord_cartesian(ylim = c(0, 25.5)) +
   scale_y_continuous(breaks = seq(0, 25.5, 5)) +
   scale_x_datetime(date_labels = "%d %b", date_breaks = days) +
   scale_color_manual(values = c("Interna" = azul_profundo, "Externa" = gris_oscuro)) +
@@ -227,24 +262,18 @@ p <- ggplot() +
     subtitle = "Temperatura interna del sistema vs. Condiciones meteorológicas externas",
     x = "Día del Mes",
     y = "Temperatura (°C)",
-    color = "Ubicación del Sensor"
+    color = "Temperatura"
   ) +
   tema_presentacion
 
-p_html <- ggplotly(p)
+p5
 
-saveWidget(
-  widget = p_html, 
-  file = "grafico_temp_int_vs_ext_monitoreo.html", 
-  selfcontained = TRUE
-)
+exportar_html(p5, "grafico_temp_int_vs_ext_monitoreo.html")
+#------------------------------------------------------------
 
 
 
-
-#////////////////////
 # Comparacion de temperatura interna entre meses
-#////////////////////
 m = 08
 m2 = 09
 
@@ -280,7 +309,7 @@ df_m2_n_s <- df_m2_n %>%
   ) %>%
   mutate(dia = day(timestamp_s) + hour(timestamp_s)/24 + minute(timestamp_s)/1440)
 
-ggplot() +
+p6 <- ggplot() +
   geom_line(data = df_m_n_s,
             aes(x = dia, y = temp_promedio, color = "Agosto"),
             linewidth = 1, alpha = 0.8) +
@@ -289,13 +318,16 @@ ggplot() +
             linewidth = 1) +
   scale_color_manual(values = c("Septiembre" = azul_profundo, "Agosto" = celeste)) +
   scale_x_continuous(breaks = 1:30) +
-  coord_cartesian(ylim = c(15.5, 26)) +         
+  coord_cartesian(ylim = c(15.5, 26)) +
   scale_y_continuous(breaks = seq(15.5, 26, 2)) +
   labs(
     title = "Evolución Térmica Intermensual",
     subtitle = "Análisis comparativo: Agosto vs. Septiembre",
-    x = "Día del mes", 
-    y = "Temperatura (°C)", 
+    x = "Día del mes",
+    y = "Temperatura (°C)",
     color = "Mes de Registro"
   ) +
   tema_presentacion
+
+p6
+#------------------------------------------------------------
